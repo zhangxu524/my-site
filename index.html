@@ -3,185 +3,157 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VX®-2026 | Audio-Visual Archive</title>
+    <title>VX®-2026 | AUDIO-VISUAL ARCHIVE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@studio-freight/lenis@1.0.33/dist/lenis.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;500&display=swap');
-        
         :root { --accent: #00ff66; }
-
-        body {
-            background-color: #050505; color: #fff; font-family: 'Inter', sans-serif;
-            margin: 0; overflow: hidden; cursor: none;
-        }
-
+        body { background-color: #050505; color: #fff; font-family: 'Inter', sans-serif; margin: 0; overflow: hidden; }
         h1, h2 { font-family: 'Syncopate', sans-serif; text-transform: uppercase; }
 
-        /* --- 加载器 --- */
-        #loader {
-            position: fixed; inset: 0; background: #000; z-index: 1000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .progress-container { width: 200px; height: 1px; background: rgba(255,255,255,0.05); position: relative; }
+        /* 加载器样式 */
+        #loader { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .progress-container { width: 150px; height: 1px; background: rgba(255,255,255,0.1); position: relative; }
         .progress-bar { position: absolute; left: 0; top: 0; height: 100%; width: 0%; background: var(--accent); box-shadow: 0 0 15px var(--accent); }
-        
-        #enter-btn {
-            margin-top: 30px; padding: 12px 40px; border: 1px solid rgba(255,255,255,0.1);
-            color: #fff; opacity: 0; pointer-events: none;
-            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); cursor: pointer; text-transform: uppercase; letter-spacing: 4px; font-size: 10px;
-        }
-        #enter-btn.active { opacity: 1; pointer-events: auto; }
+        #enter-btn { margin-top: 30px; padding: 12px 30px; border: 1px solid rgba(255,255,255,0.1); color: #fff; opacity: 0; pointer-events: none; transition: 0.6s; cursor: pointer; text-transform: uppercase; letter-spacing: 4px; font-size: 10px; }
+        #enter-btn.active { opacity: 1; pointer-events: auto; border-color: var(--accent); color: var(--accent); }
 
-        /* --- 视频互动容器 (红框区域) --- */
-        .video-interactive-wrapper {
-            transform-style: preserve-3d;
-            will-change: transform;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
-        }
-        .scanline-mask {
-            position: absolute; inset: 0; z-index: 10; pointer-events: none;
-            background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.1) 50%), linear-gradient(90deg, rgba(255,0,0,0.03), rgba(0,255,0,0.01), rgba(0,0,255,0.03));
-            background-size: 100% 3px, 2px 100%;
-            opacity: 0.4;
-        }
+        /* 视频容器 (红框区域) */
+        .video-interactive-wrapper { transform-style: preserve-3d; will-change: transform; box-shadow: 0 30px 60px rgba(0,0,0,0.5); }
+        .scanline-mask { position: absolute; inset: 0; z-index: 10; pointer-events: none; background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.1) 50%), linear-gradient(90deg, rgba(255,0,0,0.03), rgba(0,255,0,0.01), rgba(0,0,255,0.03)); background-size: 100% 3px, 2px 100%; opacity: 0.4; }
 
-        /* --- 瀑布流 (Masonry) --- */
+        /* 响应式瀑布流 */
         .masonry-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); grid-auto-rows: 10px; gap: 30px; }
-        .work-item { 
-            position: relative; overflow: hidden; border-radius: 4px; background: #111; 
-            cursor: pointer; transform-style: preserve-3d; transition: transform 0.1s ease-out;
+        @media (max-width: 768px) { 
+            .masonry-grid { grid-template-columns: 1fr; gap: 20px; } 
+            #cursor { display: none !important; }
         }
-        .work-item-inner { width: 100%; height: 100%; transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
-        .work-item:hover .work-item-inner { transform: scale(1.05); }
-        .work-item img { width: 100%; height: auto; display: block; filter: grayscale(100%); transition: 0.8s; }
-        .work-item:hover img { filter: grayscale(0%); }
 
-        /* --- 大图预览 --- */
-        #lightbox {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 2000;
-            display: none; opacity: 0; justify-content: center; align-items: flex-start;
-            overflow-y: auto; padding: 60px 20px;
-        }
-        #lightbox-img { max-width: 95%; height: auto; border-radius: 2px; }
+        .work-item { position: relative; overflow: hidden; border-radius: 4px; background: #111; cursor: pointer; transform-style: preserve-3d; }
+        .work-item img { width: 100%; height: auto; display: block; filter: grayscale(100%); transition: 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+        .work-item:hover img { filter: grayscale(0%); transform: scale(1.05); }
 
-        /* --- 鼠标 --- */
+        /* 鼠标光圈 */
         #cursor { position: fixed; width: 12px; height: 12px; background: #fff; border-radius: 50%; pointer-events: none; z-index: 9999; mix-blend-mode: difference; }
-
-        #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; opacity: 0.3; }
+        #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; opacity: 0.2; }
         .magnetic-text { display: inline-block; }
+
+        /* 大图预览 Lightbox */
+        #lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 2000; display: none; opacity: 0; justify-content: center; align-items: flex-start; overflow-y: auto; padding: 60px 20px; }
     </style>
 </head>
 <body>
 
-    <audio id="bgm" loop src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"></audio>
+    <audio id="bgm" loop src="./enough.mp3" preload="auto"></audio>
 
     <div id="cursor"></div>
 
     <div id="loader">
-        <div id="loader-status" class="mb-4 tracking-[0.4em] text-[9px] opacity-40">SYSTEM.INIT()</div>
+        <div id="loader-status" class="mb-4 tracking-[0.4em] text-[9px] opacity-40">SYSTEM.CONNECTING</div>
         <div class="progress-container"><div class="progress-bar"></div></div>
-        <button id="enter-btn">Enter Archive</button>
+        <button id="enter-btn">ENTER ARCHIVE</button>
     </div>
 
     <div id="lightbox">
-        <div id="close-lightbox" class="fixed top-10 right-10 text-[10px] tracking-widest cursor-pointer z-[2100]">CLOSE / 关闭</div>
-        <img id="lightbox-img" src="">
+        <div id="close-lightbox" class="fixed top-10 right-10 text-[10px] tracking-widest cursor-pointer z-[2100] border border-white/20 p-2">CLOSE [X]</div>
+        <img id="lightbox-img" class="w-full max-w-5xl" src="">
     </div>
 
     <canvas id="bg-canvas"></canvas>
 
-    <nav class="fixed top-0 w-full p-12 flex justify-between items-center z-50 mix-blend-difference">
+    <nav class="fixed top-0 w-full p-8 md:p-12 flex justify-between items-center z-50 mix-blend-difference">
         <div class="text-xl font-bold tracking-tighter">VX®-2026</div>
+        <div class="hidden md:block text-[9px] tracking-[0.4em] opacity-40">DIGITAL ARCHIVE SYSTEM</div>
     </nav>
 
     <main id="main">
-        <section class="h-screen flex items-center justify-between px-16 relative">
-            <div class="z-20">
-                <h1 class="text-[9vw] leading-[0.85] font-bold tracking-tighter">
+        <section class="min-h-screen flex flex-col md:flex-row items-center justify-center md:justify-between px-8 md:px-20 pt-24 md:pt-0">
+            <div class="z-20 mb-12 md:mb-0 text-center md:text-left">
+                <h1 class="text-[14vw] md:text-[9vw] leading-[0.85] font-bold tracking-tighter">
                     <span class="magnetic-text">AUDIO</span><br>
-                    <span class="magnetic-text ml-[10vw]" style="-webkit-text-stroke: 1px #fff; color: transparent;">VISUAL</span><br>
+                    <span class="magnetic-text md:ml-[10vw]" style="-webkit-text-stroke: 1px #fff; color: transparent;">VISUAL</span><br>
                     <span class="magnetic-text">LAB®</span>
                 </h1>
             </div>
 
-            <div class="video-interactive-wrapper relative w-[42vw] aspect-video border border-white/10 overflow-hidden bg-neutral-900 group mr-8">
+            <div class="video-interactive-wrapper relative w-full md:w-[42vw] aspect-video border border-white/10 overflow-hidden bg-neutral-900 group">
                 <div class="scanline-mask"></div>
-                <video 
-                    id="hero-video"
-                    class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 scale-110" 
-                    autoplay muted loop playsinline
-                    src="https://assets.mixkit.co/videos/preview/mixkit-abstract-technology-elements-in-blue-background-44154-large.mp4">
-                </video>
-                <div class="absolute bottom-4 left-4 text-[8px] tracking-[0.4em] opacity-40 z-20">LIVE_FEED // 2026_ARCHIVE</div>
+                <video id="hero-video" class="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 scale-110" autoplay muted loop playsinline src="./video.mp4"></video>
+                <div class="absolute bottom-4 left-4 text-[7px] tracking-[0.5em] opacity-30 z-20">ENOUGH_FOR_ME // DATA_STREAM</div>
             </div>
         </section>
 
-        <section class="px-16 py-24 border-t border-white/5">
-            <h2 class="text-[10px] mb-16 opacity-30 tracking-[0.5em]">Selected Works / 001-004</h2>
-            <div class="masonry-grid">
-                <div class="work-item" style="grid-row-end: span 30;" data-full="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=100&w=1600">
-                    <div class="work-item-inner"><img src="https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=700"></div>
+        <section class="px-8 md:px-20 py-24 border-t border-white/5">
+            <h2 class="text-[10px] mb-16 opacity-30 tracking-[0.6em]">COLLECTED_WORKS</h2>
+            <div class="masonry-grid" id="portfolio">
+                
+                <div class="work-item" style="grid-row-end: span 30;" data-full="./images/1.jpg">
+                    <div class="work-item-inner"><img src="./images/1.jpg" alt="Work 01"></div>
                 </div>
-                <div class="work-item" style="grid-row-end: span 45;" data-full="https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?q=100&w=1600">
-                    <div class="work-item-inner"><img src="https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?q=80&w=700"></div>
+
+                <div class="work-item" style="grid-row-end: span 45;" data-full="./images/2.jpg">
+                    <div class="work-item-inner"><img src="./images/2.jpg" alt="Work 02"></div>
                 </div>
-                <div class="work-item" style="grid-row-end: span 35;" data-full="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=100&w=1600">
-                    <div class="work-item-inner"><img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=700"></div>
+
                 </div>
-                <div class="work-item" style="grid-row-end: span 40;" data-full="https://images.unsplash.com/photo-1605106702734-205df224ecbc?q=100&w=1600">
-                    <div class="work-item-inner"><img src="https://images.unsplash.com/photo-1605106702734-205df224ecbc?q=80&w=700"></div>
-                </div>
-            </div>
         </section>
     </main>
 
     <script>
+        // 1. 平滑滚动
         const lenis = new Lenis();
         function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
         requestAnimationFrame(raf);
 
+        // 2. 鼠标跟随 (仅限PC)
         const cursor = document.getElementById('cursor');
-        document.addEventListener('mousemove', (e) => {
-            gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0.5, ease: 'power2.out' });
-        });
+        if (window.matchMedia("(pointer: fine)").matches) {
+            document.addEventListener('mousemove', (e) => {
+                gsap.to(cursor, { x: e.clientX, y: e.clientY, duration: 0.4, ease: 'power2.out' });
+            });
+        }
 
+        // 3. 加载逻辑与音乐淡入
         const audio = document.getElementById('bgm');
         const enterBtn = document.getElementById('enter-btn');
         gsap.to('.progress-bar', {
-            width: '100%', duration: 3, ease: 'expo.inOut',
+            width: '100%', duration: 3.5, ease: 'expo.inOut',
             onComplete: () => {
-                document.getElementById('loader-status').innerText = "READY";
+                document.getElementById('loader-status').innerText = "SYSTEM READY";
                 enterBtn.classList.add('active');
             }
         });
 
         enterBtn.addEventListener('click', () => {
-            audio.play();
+            // 核心：Enough For Me 音乐淡入逻辑
+            audio.volume = 0;
+            audio.play().catch(() => console.log("Audio interaction required"));
+            gsap.to(audio, { volume: 0.5, duration: 4, ease: "none" });
+
+            // 开屏转场
             gsap.to('#loader', { y: '-100%', duration: 1.5, ease: 'expo.inOut' });
+            gsap.from('.magnetic-text', { y: 100, stagger: 0.1, duration: 1.5, ease: 'expo.out', delay: 0.5 });
             document.body.style.overflowY = 'auto';
         });
 
-        // 视频 3D 互动逻辑
+        // 4. 视频 3D 磁吸动效
         const videoWrapper = document.querySelector('.video-interactive-wrapper');
         videoWrapper.addEventListener('mousemove', (e) => {
             const { left, top, width, height } = videoWrapper.getBoundingClientRect();
             const x = (e.clientX - left) / width - 0.5;
             const y = (e.clientY - top) / height - 0.5;
-            gsap.to(videoWrapper, { rotationY: x * 25, rotationX: -y * 25, transformPerspective: 1000, duration: 0.4 });
-            gsap.to("#hero-video", { x: -x * 30, y: -y * 30, scale: 1.2, duration: 0.4 });
-            gsap.to(cursor, { scale: 6, backgroundColor: 'rgba(0,255,102,0.2)' });
+            gsap.to(videoWrapper, { rotationY: x * 25, rotationX: -y * 25, transformPerspective: 1000, duration: 0.5 });
+            gsap.to("#hero-video", { x: -x * 30, y: -y * 30, scale: 1.2, duration: 0.5 });
         });
         videoWrapper.addEventListener('mouseleave', () => {
             gsap.to(videoWrapper, { rotationX: 0, rotationY: 0, duration: 1, ease: 'elastic.out(1, 0.3)' });
             gsap.to("#hero-video", { x: 0, y: 0, scale: 1.1, duration: 1 });
-            gsap.to(cursor, { scale: 1, backgroundColor: '#fff' });
         });
 
-        // 磁吸文字
+        // 5. 磁吸文字
         document.querySelectorAll('.magnetic-text').forEach(text => {
             text.addEventListener('mousemove', (e) => {
                 const { left, top, width, height } = text.getBoundingClientRect();
@@ -191,25 +163,12 @@
                 gsap.to(cursor, { scale: 5 });
             });
             text.addEventListener('mouseleave', () => {
-                gsap.to(text, { x: 0, y: 0, duration: 0.6, ease: 'elastic.out(1,0.3)' });
+                gsap.to(text, { x: 0, y: 0, duration: 0.6, ease: 'elastic.out(1, 0.3)' });
                 gsap.to(cursor, { scale: 1 });
             });
         });
 
-        // 瀑布流 Tilt
-        document.querySelectorAll('.work-item').forEach(item => {
-            item.addEventListener('mousemove', (e) => {
-                const { left, top, width, height } = item.getBoundingClientRect();
-                const tiltX = ((e.clientY - top) / height - 0.5) * 15;
-                const tiltY = -((e.clientX - left) / width - 0.5) * 15;
-                gsap.to(item, { rotationX: tiltX, rotationY: tiltY, transformPerspective: 800, duration: 0.4 });
-            });
-            item.addEventListener('mouseleave', () => {
-                gsap.to(item, { rotationX: 0, rotationY: 0, duration: 0.8, ease: 'elastic.out(1,0.3)' });
-            });
-        });
-
-        // Lightbox
+        // 6. Lightbox 大图逻辑
         const lightbox = document.getElementById('lightbox');
         document.querySelectorAll('.work-item').forEach(item => {
             item.addEventListener('click', () => {
@@ -220,18 +179,18 @@
             });
         });
         document.getElementById('close-lightbox').addEventListener('click', () => {
-            gsap.to(lightbox, { opacity: 0, duration: 0.5, onComplete: () => { lightbox.style.display='none'; lenis.start(); }});
+            gsap.to(lightbox, { opacity: 0, duration: 0.4, onComplete: () => { lightbox.style.display='none'; lenis.start(); }});
         });
 
-        // Canvas 背景粒子
+        // 7. 背景粒子
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         let p = [];
-        for(let i=0; i<70; i++) p.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, s:Math.random()});
+        for(let i=0; i<60; i++) p.push({x:Math.random()*canvas.width, y:Math.random()*canvas.height, s:Math.random()*0.8});
         function draw() {
-            ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle = "rgba(255,255,255,0.3)";
-            p.forEach(i => { i.y -= 0.2; if(i.y<0) i.y=canvas.height; ctx.beginPath(); ctx.arc(i.x, i.y, i.s, 0, Math.PI*2); ctx.fill(); });
+            ctx.clearRect(0,0,canvas.width,canvas.height); ctx.fillStyle = "rgba(255,255,255,0.2)";
+            p.forEach(i => { i.y -= 0.15; if(i.y<0) i.y=canvas.height; ctx.beginPath(); ctx.arc(i.x, i.y, i.s, 0, Math.PI*2); ctx.fill(); });
             requestAnimationFrame(draw);
         }
         draw();
