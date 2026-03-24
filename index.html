@@ -89,11 +89,13 @@
         </section>
     </main>
 
-    <script>
+   <script>
+        // 1. 平滑滚动初始化
         const lenis = new Lenis();
         function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
         requestAnimationFrame(raf);
 
+        // 2. 鼠标跟随
         const cursor = document.getElementById('cursor');
         if (window.matchMedia("(pointer: fine)").matches) {
             document.addEventListener('mousemove', (e) => {
@@ -101,8 +103,11 @@
             });
         }
 
+        // 3. 核心控制逻辑：加载与音频激活
         const audio = document.getElementById('bgm');
         const enterBtn = document.getElementById('enter-btn');
+        
+        // 进度条动画
         gsap.to('.progress-bar', {
             width: '100%', duration: 3.5,
             onComplete: () => {
@@ -111,26 +116,44 @@
             }
         });
 
+        // 你要找的监听事件在这里：
         enterBtn.addEventListener('click', () => {
-            audio.volume = 0; audio.play().catch(() => console.log("Audio interaction needed"));
-            gsap.to(audio, { volume: 0.5, duration: 4 });
+            // 强力激活音频
+            audio.muted = false; 
+            const playPromise = audio.play();
+
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    audio.volume = 0;
+                    gsap.to(audio, { volume: 0.5, duration: 4, ease: "power1.in" });
+                }).catch(error => {
+                    console.error("音频播放被拦截或文件缺失:", error);
+                });
+            }
+
+            // 开屏动画
             gsap.to('#loader', { y: '-100%', duration: 1.5, ease: 'expo.inOut' });
+            gsap.from('.magnetic-text', { y: 100, stagger: 0.1, duration: 1.5, ease: 'expo.out', delay: 0.5 });
             document.body.style.overflowY = 'auto';
         });
 
+        // 4. 视频 3D 磁吸效果
         const videoWrapper = document.querySelector('.video-interactive-wrapper');
-        videoWrapper.addEventListener('mousemove', (e) => {
-            const { left, top, width, height } = videoWrapper.getBoundingClientRect();
-            const x = (e.clientX - left) / width - 0.5;
-            const y = (e.clientY - top) / height - 0.5;
-            gsap.to(videoWrapper, { rotationY: x * 25, rotationX: -y * 25, transformPerspective: 1000, duration: 0.5 });
-            gsap.to("#hero-video", { x: -x * 30, y: -y * 30, scale: 1.2, duration: 0.5 });
-        });
-        videoWrapper.addEventListener('mouseleave', () => {
-            gsap.to(videoWrapper, { rotationX: 0, rotationY: 0, duration: 1, ease: 'elastic.out(1, 0.3)' });
-            gsap.to("#hero-video", { x: 0, y: 0, scale: 1.1, duration: 1 });
-        });
+        if(videoWrapper) {
+            videoWrapper.addEventListener('mousemove', (e) => {
+                const { left, top, width, height } = videoWrapper.getBoundingClientRect();
+                const x = (e.clientX - left) / width - 0.5;
+                const y = (e.clientY - top) / height - 0.5;
+                gsap.to(videoWrapper, { rotationY: x * 25, rotationX: -y * 25, transformPerspective: 1000, duration: 0.5 });
+                gsap.to("#hero-video", { x: -x * 30, y: -y * 30, scale: 1.2, duration: 0.5 });
+            });
+            videoWrapper.addEventListener('mouseleave', () => {
+                gsap.to(videoWrapper, { rotationX: 0, rotationY: 0, duration: 1, ease: 'elastic.out(1, 0.3)' });
+                gsap.to("#hero-video", { x: 0, y: 0, scale: 1.1, duration: 1 });
+            });
+        }
 
+        // 5. 磁吸文字效果
         document.querySelectorAll('.magnetic-text').forEach(text => {
             text.addEventListener('mousemove', (e) => {
                 const { left, top, width, height } = text.getBoundingClientRect();
@@ -145,10 +168,12 @@
             });
         });
 
+        // 6. Lightbox 大图预览
         const lightbox = document.getElementById('lightbox');
         document.querySelectorAll('.work-item').forEach(item => {
             item.addEventListener('click', () => {
-                document.getElementById('lightbox-img').src = item.getAttribute('data-full');
+                const fullImg = item.getAttribute('data-full');
+                document.getElementById('lightbox-img').src = fullImg;
                 lightbox.style.display = 'flex';
                 gsap.to(lightbox, { opacity: 1, duration: 0.5 });
                 lenis.stop();
@@ -158,6 +183,7 @@
             gsap.to(lightbox, { opacity: 0, duration: 0.4, onComplete: () => { lightbox.style.display='none'; lenis.start(); }});
         });
 
+        // 7. 背景粒子 Canvas
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
@@ -170,5 +196,3 @@
         }
         draw();
     </script>
-</body>
-</html>
